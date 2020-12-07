@@ -170,6 +170,182 @@ SVD可以得到X^TX最大的d个特征向量张成的矩阵，我们可以先不
 
 
 
+
+
+
+
+## 6、几何意义
+
+- 任意的矩阵M可以分解为3个矩阵，U，Σ，V
+
+- V表示原始域的标准正交基
+
+- U表示经过M变换后的新标准正交基
+
+- Σ表示V中向量和U中对应向量的比例关系
+
+- Σ中的奇异值会从大到小排序好，值越大，则该维度越重要
+
+- 提取数据：
+
+  ![[公式]](https://www.zhihu.com/equation?tex=%5Cdisplaystyle+k+%3D+%5Carg+%5Cmin_%7Bk%7D+%5Cfrac%7B%5Csum_%7Bi%3D0%7D%5E%7Bk%7D%5Csigma_i%5E2%7D%7B%5Csum_%7Bi%3D0%7D%5E%7BN%7D%5Csigma_i%5E2%7D+%5Cgeqslant+0.9)
+
+
+
+
+
+## 7、图片压缩python代码
+
+```python
+import numpy as np
+import numpy.linalg as la
+import matplotlib.pyplot as plt
+from sklearn import datasets
+from skimage import io
+
+
+def getImgAsMat(index):
+    ds = dataset.fetch_olivetti_faces()
+    return np.mat(ds.images[index])
+
+def getImgAsMatFromFile(filename):
+	img = io.imread(filename, as_grey=True)
+    
+def plotImg(imgMat):
+    plt.imshow(imgMat,cmap = plt.cm.gray)
+    plt.show()
+    
+def recoverBySVD(imgMat,k):
+    U,s,V = la.svd(imgMat)
+    Uk = U[:,0:k]
+    Sk = np.diag(s[0:k])
+    Vk = V[0:k,:]
+    imgMat new = Uk*Sk*Vk
+    return imgMat_new
+
+A = getImgAsMatFromFile('D:/pic.jpg')
+plotImg(A)
+A_new = recoverBySVD(A,30)
+plotImg(A_new)
+
+```
+
+
+
+
+
+## 8、SVD应用于求解Ax = b
+
+- SVD：
+
+  ![img](https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Singular_value_decomposition_visualisation.svg/220px-Singular_value_decomposition_visualisation.svg.png)
+
+  Σ的形状为m*n，可以有三种形式：
+
+  m=n，m<n，m>n
+
+
+
+
+
+- 伪逆 pseudo inverse
+
+  
+
+  对于Ax = b这个问题，我们已经知道：A可以被SVD分解为A = UΣV^T
+
+  现在构造一个Σ+ 形状为n*m，可以对应三种形式
+
+  n=m，n<m，n>m
+
+  ![img](https://pic2.zhimg.com/80/v2-926768afc2db7b6194fa67be00c79bcd_720w.jpg)
+
+  
+
+  目的是为了使得Σ+Σ=I
+
+  ![img](https://pic4.zhimg.com/80/v2-7f351b98e5dc8b722b3dbc7793c7714b_720w.jpg)
+
+  对于等式Ax=b
+
+  UΣV^T x = b
+
+  两边同乘以U^T，Σ+，V
+
+  x' = VΣ+U^T b = A+b
+
+  
+
+  A+为伪逆：
+
+  A+ = VΣ+U^T
+
+
+
+
+
+- 关于解的讨论
+
+  这里x‘和x不一样
+
+  
+
+  
+
+  最小二乘问题（Least-Squares Solution）：
+
+  使得||Ax-b||最小的解
+
+  对于不同形状/不同秩的矩阵，x' = A+b有不同的含义
+
+  
+
+  - 当A是方阵的时候，m=n，方程数和未知数一样
+
+    - 满秩
+
+      A+ = A-1
+
+      x' = A-1b，x’是唯一解，||Ax-b||=0
+
+    - 不满秩
+
+      x‘是不唯一的最小二乘解，||Ax-b||>=0，通常！=0，但是其||x'||最小
+
+  - 当A是细长的时候，m>n，方程数多于未知数
+
+    - 满秩，x’是唯一最小二乘解
+    - 不满秩，x‘是不唯一的最小二乘解，||Ax-b||>=0，通常！=0，但是其||x'||最小
+
+    
+
+  - 当A是矮胖的时候，m<n，方程数少于未知数
+
+    - 满秩，x'是不唯一解，||x'||最小
+    - 不满秩，不唯一的最小二乘解，||x'||最小
+
+  ![img](https://pic2.zhimg.com/80/v2-ff02fcac90ddaccc9826c2e4fed951b5_720w.jpg)
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 reference：
 
 https://zhuanlan.zhihu.com/p/29846048
+
+https://zhuanlan.zhihu.com/p/36546367
+
+https://zhuanlan.zhihu.com/p/131097680
