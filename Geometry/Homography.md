@@ -1,4 +1,4 @@
-# Homograph
+# Homography
 
 单应性原理被广泛应用于图像配准，全景拼接，SLAM，AR领域
 
@@ -222,11 +222,11 @@ cv2.imwrite("./concatenate.png",img_mix)
 
 left：
 
-<img src=".\picture\homography_left.png" alt="homography_left" style="zoom:25%;" />
+<img src="..\picture\homography_left.png" alt="homography_left" style="zoom:25%;" />
 
 right：
 
-<img src="E:\Desktop\3d-vision\picture\homography_right.png" alt="homography_right" style="zoom:25%;" />
+<img src="..\picture\homography_right.png" alt="homography_right" style="zoom:25%;" />
 
 left->H->homograpy：
 
@@ -248,7 +248,7 @@ left & right：
 
 手写部分
 
-![homography_script](E:\Desktop\3d-vision\picture\homography_script.png)
+![homography_script](..\picture\homography_script.png)
 
 
 
