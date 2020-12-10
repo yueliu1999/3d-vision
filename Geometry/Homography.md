@@ -240,6 +240,10 @@ left & right：
 
 
 
+可以看到电脑平面是一个平面，所以通过一个H从2d到2d可以重合上，而其他的物体，例如杯子，不在一个平面上，所以
+
+
+
 
 
 
@@ -252,6 +256,126 @@ left & right：
 
 
 
+## 传统方法估计单应性矩阵
+
+步骤：
+
+1. 提取每张图片的SIFT/SURF/FAST/ORB等特征点
+2. 计算每个特征点所对应的描述子
+3. 通过匹配特征点描述子，找到两种图重匹配的特征点对，汉明距离？
+4. 用RANSAC算法剔除错误匹配
+5. 求解方程组，计算Homography单应性变换矩阵，SVD？
+
+
+
+python代码
+
+```python
+#coding:utf-8
+
+# This code only tested in OpenCV 3.4.2!
+import cv2 
+import numpy as np
+
+# 读取图片
+im1 = cv2.imread('left.jpg')
+im2 = cv2.imread('right.jpg')
+
+# 计算SURF特征点和对应的描述子，kp存储特征点坐标，des存储对应描述子
+surf = cv2.xfeatures2d.SURF_create()
+kp1, des1 = surf.detectAndCompute(im1, None)
+kp2, des2 = surf.detectAndCompute(im2, None)
+
+# 匹配特征点描述子
+bf = cv2.BFMatcher()
+matches = bf.knnMatch(des1, des2, k=2)
+
+# 提取匹配较好的特征点
+good = []
+for m,n in matches:
+    if m.distance < 0.7*n.distance:
+        good.append(m)
+
+# 通过特征点坐标计算单应性矩阵H
+# （findHomography中使用了RANSAC算法剔初错误匹配）
+src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1,1,2)
+dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1,1,2)
+H, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+matchesMask = mask.ravel().tolist()
+
+# 使用单应性矩阵计算变换结果并绘图
+h, w, d = im1.shape
+pts = np.float32([[0,0], [0,h-1], [w-1,h-1], [w-1,0]]).reshape(-1,1,2)
+dst = cv2.perspectiveTransform(pts, H)
+img2 = cv2.polylines(im2, [np.int32(dst)], True, 255, 3, cv2.LINE_AA)
+
+draw_params = dict(matchColor = (0,255,0), # draw matches in green color
+                   singlePointColor = None,
+                   matchesMask = matchesMask, # draw only inliers
+                   flags = 2)
+
+im3 = cv2.drawMatches(im1, kp1, im2, kp2, good, None, **draw_params)
+```
+
+
+
+特征点匹配的数量远远大于4，此时需要解超定方程组（类似于求解线性回归）
+
+
+
+超定方程组：
+
+方程个数大于未知量个数的方程组，一般精确解，如果有精确解，则称为是相容的
+
+一般采用最小二乘法求解，在无法完全满足给定的浙西条件的情况下，求一个最接近的解
+
+如果有向量a使得值最小，则称a为超定方程组的最小二乘解
+
+
+
+
+
+
+
+## 深度学习在单应性方向的进展
+
+HomographyNet
+
+
+
+是2016年CVPR的一种用深度学习计算单应性矩阵的变换网络：
+
+输入两种图片，直接输出单应性矩阵H
+
+![img](https://pic2.zhimg.com/80/v2-59181d31895c04627535996f6ec37ba1_720w.jpg)
+
+可以进行：
+
+- 回归任务，直接回归float values
+- 分类任务，具有confidence，强行进行区域划分，会产生一定的误差，但是能够输出分类置信度评价当前效果好坏，更便于实际应用。
+
+
+
+
+
+数据生成方式：
+
+1. 随机取一个patchA
+2. 对矩形进行扰动，获取4个（deltax，deltay）
+3. 再通过4组（deltax，deltay）计算HAB
+4. 最后将图像通过HBA变换，在变换后图像p位置获取正方形图像块Patch B
+
+![img](https://pic2.zhimg.com/80/v2-6a1d68c917423232d44143a9242aebb1_720w.jpg)
+
+
+
+![img](https://pic2.zhimg.com/80/v2-42772ffbd19482a8e77d164eeccb98c1_720w.jpg)
+
+
+
+深度学习提取特征点与描述子
+
+- DELF：DEept Local Features
 
 
 
@@ -261,22 +385,8 @@ left & right：
 
 
 
+reference：
 
+https://zhuanlan.zhihu.com/p/74597564
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-reference：https://zhuanlan.zhihu.com/p/74597564
-
+https://baike.baidu.com/item/%E8%B6%85%E5%AE%9A%E6%96%B9%E7%A8%8B%E7%BB%84
