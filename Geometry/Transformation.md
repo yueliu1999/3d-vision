@@ -142,6 +142,41 @@ All translation, rotation, scaling, reflection, and shearing matrices are affine
 
 
 
+## 坐标系转换
+
+- Ow-XwYwZw：世界坐标系：描述相机的位置，单位是m
+- Oc-XcyYcZc：相机坐标系：光心为原点，单位是m
+- O-xy：成像平面坐标系：光心为图像原点，单位是mm
+- uv：像素坐标系，原点在图像左上角，单位是pixel
+
+
+
+**旋转的几种表示形式**：
+
+1. 旋转矩阵R，3*3的矩阵，构成特殊正交群SO(3)
+2. 旋转向量（轴角）：一个旋转轴+一个旋转角，外积表示旋转
+3. 欧拉角：绕Z轴旋转，得到偏航角；绕Y轴旋转，得到俯仰角；绕X轴旋转，得到滚轮角
+4. 四元数：q = a+bi+cj+dk
+
+
+
+几种变换：
+
+1. 欧式变换（刚体变换）：R+T，6个自由度
+
+   长度、夹角、体积不改变
+
+2. 相似变换：S+R+T，7个自由度
+
+   体积比不改变
+
+3. 仿射变换：9+3 = 12个自由度
+
+   平行性、体积比不改变
+
+4. 射影变换：16个自由度，4*4
+
+   接触平面的相交和相切不改变
 
 
 
@@ -150,7 +185,16 @@ All translation, rotation, scaling, reflection, and shearing matrices are affine
 
 
 
-reference: https://zhuanlan.zhihu.com/p/96717729
 
 
+
+
+
+
+
+reference: 
+
+https://zhuanlan.zhihu.com/p/96717729
+
+https://zhuanlan.zhihu.com/p/80921759
 
