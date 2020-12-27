@@ -70,7 +70,7 @@ RANdom SAmple Consensus
 
 
 
-例子，RANSAC直线拟合：
+例子1，RANSAC直线拟合：
 
 1. 随机选取K=2个点
 
@@ -95,6 +95,36 @@ RANdom SAmple Consensus
    ![img](https://pic1.zhimg.com/80/v2-7225d7e8e5dd5d6ea19aa560c866dd9c_720w.jpg)
 
 
+
+
+
+例子2，RANSAC三角化：
+
+对于一个具有N个视角三维重建，已知N个视角下的2d点以及N个相机的内参K和外参[R|t]，三维重建至少需要K=2个视角
+
+1. 随机选取K=2个view
+
+2. 利用这2个view进行三角化，计算得到3d点
+
+3. 将该3d点往各个view下投，计算重投影误差
+
+   [U,V,W] = K[R|t]P<sub>W</sub>
+
+   [u,v,1] = K[R|t]P<sub>W</sub>/W
+
+   假设已知的2d点为[u',v',1]
+
+   
+
+   reprojection error = 1/2*[(u-u')2+(v-v')<sup>2</sup>]
+
+   若重投影误差小于阈值，则统计为内点，统计内点的个数
+
+4. 重复上述过程M次，找到内点最大的模型
+
+5. 利用该模型的所对应的inliers重新进行三角化，得到3d点
+
+在openmvg中有接口函数
 
 
 
