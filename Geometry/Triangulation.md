@@ -101,9 +101,9 @@ Tips：共线向量的叉乘为0，这是比较常用的方法
     ```
 
 
-  
 
-  
+
+
 
   - TriangulateL1Angular
 
@@ -180,11 +180,11 @@ Tips：共线向量的叉乘为0，这是比较常用的方法
 
   手写部分：
 
-  ![angular_reprojection_1](D:\3d-vision\picture\angular_reprojection_1.png)
+  ![angular_reprojection_1](..\picture\angular_reprojection_1.png)
 
   
 
-  ![angular_reprojection_2](D:\3d-vision\picture\angular_reprojection_2.png)
+  ![angular_reprojection_2](..\picture\angular_reprojection_2.png)
 
   
 
@@ -194,10 +194,76 @@ Tips：共线向量的叉乘为0，这是比较常用的方法
 
     @ref S.H. Lee, J. Civera - Triangulation: Why Optimize? - BMVC 2019 - https://arxiv.org/pdf/1907.11917.pdf
 
+    ## Introduction
+
+    three types:
+
+    1. midpoint methods
+
+       find the (weighted) midpoint of the common perpendicular(公垂线) between the two rays
+
+       minimize the (weighted) sum of squared distances to each rays
+
+    2. linear least squares methods
+
+       minimize the algebraic errors
+
+    3. optimal methods
+
+       minimally correct the two rays to make them intersect
+
+       image reprojection errors or angular reprojection errors
+
+    cost function:
+
+    1. L1 norm
+
+       sum of magnitude
+
+    2. L2 norm
+
+       sum of squares
+
+    3. L∞ norm
+
+       maximum
+
+    ours:
+
+    find a midpoint between **a certain pair** of points on each ray
+
+    
+
+    ## Proposed method
+
+    - Generalized Weighted Midpoint (GWM) Method
+
+      1. 给定对应同一个点的两条射线，用一些方法估计每条射线的深度$\lambda1$和$\lambda2$
+      
+      2. 计算对于每条射线在深度$\lambda1$和$\lambda2$的3d点，也就是t+$\lambda1*R*f1$和$\lambda2*f2$
+      
+      3. 获得最终的3d估计点，通过weighted average
+
+         
+
+    - Alternative Midpoint Method
+
+      belongs to the generalized weighted mid-point method
+
+    - Cheirality and Test of Adequacy
+
+    - Inverse Depth Weighted Midpoint
+
     
 
     
+
     
+
+    
+
+    
+
     
     
     

@@ -203,6 +203,8 @@
    */
    ```
 
+   ![Gaussian_distribution](..\Picture\Gaussian_distribution.jpg)
+
    
 
 4. 双边滤波器

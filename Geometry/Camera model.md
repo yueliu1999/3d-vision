@@ -1,8 +1,31 @@
 # Camera
 
+## 相机类型
+
+- fisheye camera: 鱼眼相机
+
+  受到水下斯涅尔窗口的现象的启发，采用不同的投影方式，来得到极大的视场角
+
+  投影方式
+
+  - 等距投影
+  - 等积投影
+  - 体视投影
+  - 正交投影
+
+- omnidirectional camera: 全向相机，360度相机
+
+- perspective camera or pinhole camera: 
+
+  透视相机, 小孔成像
+
+  普通镜头和针孔相机在数学模型上可以等价对等，都是透视变换，Perspective transformation
+
+  
 
 
-## 相机数学模型
+
+## 相机数学模型，pinhole camera model
 
 - 从**世界坐标系**到**相机坐标系**
 
@@ -49,6 +72,15 @@
 <img src="..\picture\camera_1.png" alt="camera_1" style="zoom:33%;" />
 
 <img src="..\picture\camera_2.png" alt="camera_2" style="zoom:33%;" />
+
+
+
+成像过程是一个perspective transformation contains
+
+- the projection from 3d world coordinates to 3d camera coordinates，which is a mapping from R^3^ to R^3^
+- the projection from 3d camera coordinates to 2d image coordinates, which by contrast is a mapping from R^3^ to R^2^
+
+
 
 
 
@@ -112,3 +144,4 @@ https://zhuanlan.zhihu.com/p/135943895
 
 https://zhuanlan.zhihu.com/p/38397650
 
+https://zhuanlan.zhihu.com/p/29273352
