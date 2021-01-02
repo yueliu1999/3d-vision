@@ -102,6 +102,8 @@
 
    而2d无法求3d，因为丢失深度信息
 
+   K是相机内参Intrinsic parameters
+
    
 
 5. **镜头畸变对成像的影响**
@@ -138,34 +140,121 @@
       - 枕形畸变
 
       径向畸变以某个中心点向外延伸，且越往外，畸变越大，显然畸变和距离是一种**非线性的变换关系**，可以通过**多项式来近似**
+   
+      
       $$
       \begin{cases}
-      x_d = 
+      x_{corrected} = x(1+k_1r^2+k_2r^4+k_3r^6)
       \\
-      y_d = 
+      y_{corrected} = x(1+k_1r^2+k_2r^4+k_3r^6)
       \end{cases}
+   \\
+      其中x_{corrected}是去畸变后的x坐标，x是去畸变前的x坐标
+   \\
+      k1,k2,k3是径向畸变系数
+   \\
+      r = x^2+y^2
+   $$
+   
+      
+   
+      
+   
+   2. **切向畸变** tangential distortion
+   
+      主要发生在**相机sensor**和**镜头不平行**的情况下
+   
+      因为有夹角，所以光透过镜头传到图像传感器上时，成像位置发生了变化
+   
+      ![tangential_distortion](..\Picture\tangential_distortion.png)
+      $$
+      \begin{cases}
+      x_{corrected} = x + [2p_1xy+p_2(r^2+2x^2)]
+      \\
+      y_{corrected} = y + [2p_2xy+p_1(r^2+2x^2)]
+      \end{cases}
+      \\
+      p1,p2是切向畸变的系数
+      \\
+      r^2 = x^2+y^2
       $$
       
-
+   
       
+      $$
+      一共有5个畸变系数
+      \\
+      \\
+      径向畸变
+      \begin{cases}
+      k1
+      \\
+      k2
+      \\
+      k3
+      \end{cases}
+      \\
+      切向畸变
+      \begin{cases}
+      p1
+      \\
+      p2
+      \end{cases}
+      $$
+   
+   3. 
+   
+   ![相机畸变](..\Picture\相机畸变.png)
+   
+6. 相机外参Extrinsic parameters
 
-      
-
-   2. **切向畸变**
+   坐标系的转换需要用到相机外参
 
    
 
+## 2模型求解
 
+1. **内参Intrinsic和单应性矩阵Homography的关系**
 
+   内参的初始估计有**闭环解**，不需要瞎估
 
+   tips:
 
+   - 解析解Analytical solution（封闭解Closed-form solution）：
 
+     根据**严格的公式推导**，给出任意自变量就可以求出其因变量，也就是问题的解
 
+     解析解是一个封闭形式（closed-form）的函数，因此对于任意变量，我们皆可以将其带入解析函数求得正确的因变量。因此解析解也被称为封闭解（closed-form solution）
 
+     
 
+   - 数值解（Numberical solution）
 
+     是采用某种计算方法，如：有限元法、数值逼近法、插值法得到的解。
 
+     给出解的具体函数形式，从解的表达式中就可以算出任何对应值
 
+   ![内参和单应性矩阵的关系](..\Picture\内参和单应性矩阵的关系.png)
+
+   
+
+2. **闭环求解 closed form solution**
+
+   ![闭环求解B和内参和外参](..\Picture\闭环求解B和内参和外参.png)
+
+   
+
+3. **优化**
+
+   做BA，优化重投影误差
+
+   目标函数和优化变量
+
+   ![img](https://pic2.zhimg.com/80/v2-f0e10d55e1d8d581bb9776e37b3ff1dd_720w.jpg)
+
+   优化变量的初始值：闭环解，畸变系数初始为0
+
+   优化方法：G-N或LM
 
 
 
@@ -176,3 +265,5 @@ reference:
 https://zhuanlan.zhihu.com/p/87334006
 
 https://www.twblogs.net/a/5b8b4a682b717718832e9793/?lang=zh-cn
+
+https://www.cnblogs.com/vive/p/5006552.html
