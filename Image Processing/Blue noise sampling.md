@@ -30,6 +30,26 @@ DART方法
 
 
 
+**为什么不使用均匀采样/随机（均匀分布）采样的方法？**
+
+随机采样6667个点：
+
+![img](https://bost.ocks.org/mike/algorithms/uniform-random-voronoi.jpg)
+
+
+
+DART算法
+
+![img](https://bost.ocks.org/mike/algorithms/best-candidate-voronoi.jpg)
+
+
+
+Bridson方法
+
+![img](https://bost.ocks.org/mike/algorithms/poisson-disc-voronoi.jpg)
+
+
+
 
 
 
