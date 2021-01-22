@@ -262,17 +262,121 @@
 
     点云凸包是最小的凸集包含所有点
 
+    ```python
+  pcl = o3dtut.get_bunny_mesh().sample_points_poisson_disk(number_of_points=2000)
+    hull, _ = pcl.compute_convex_hull()
+  hull_ls = o3d.geometry.LineSet.create_from_triangle_mesh(hull)
+    hull_ls.paint_uniform_color((1, 0, 0))
+  o3d.visualization.draw_geometries([pcl, hull_ls])
+    ```
+
+    **compute_convex_hull** that computes the convex hull of a point cloud. The implementation is based on Qhull
+
+    
+  
   - DBSCAN clustering
-
+  
+    ```python
+    pcd = o3d.io.read_point_cloud("../../test_data/fragment.ply")
     
-
+    with o3d.utility.VerbosityContextManager(
+            o3d.utility.VerbosityLevel.Debug) as cm:
+        labels = np.array(
+            pcd.cluster_dbscan(eps=0.02, min_points=10, print_progress=True))
+    
+    max_label = labels.max()
+    print(f"point cloud has {max_label + 1} clusters")
+    colors = plt.get_cmap("tab20")(labels / (max_label if max_label > 0 else 1))
+    colors[labels < 0] = 0
+    pcd.colors = o3d.utility.Vector3dVector(colors[:, :3])
+    o3d.visualization.draw_geometries([pcd],
+                                      zoom=0.455,
+                                      front=[-0.4999, -0.1659, -0.8499],
+                                      lookat=[2.1813, 2.0619, 2.0999],
+                                      up=[0.1204, -0.9852, 0.1215])
+    ```
+  
+    cluster_dbscan are required two parameters:
+  
+    - eps define the distance to neighbors
+    - min_points defines the minimum number of points
+  
+    return labels
+  
   - Plane segmentation
-
+  
+    segmentation of geometric primitives from point cloud using RANSAC
+  
+    ```python
+    pcd = o3d.io.read_point_cloud("../../test_data/fragment.pcd")
+    plane_model, inliers = pcd.segment_plane(distance_threshold=0.01,
+                                             ransac_n=3,
+                                             num_iterations=1000)
+    [a, b, c, d] = plane_model
+    print(f"Plane equation: {a:.2f}x + {b:.2f}y + {c:.2f}z + {d:.2f} = 0")
     
-
+    inlier_cloud = pcd.select_by_index(inliers)
+    inlier_cloud.paint_uniform_color([1.0, 0, 0])
+    outlier_cloud = pcd.select_by_index(inliers, invert=True)
+    o3d.visualization.draw_geometries([inlier_cloud, outlier_cloud],
+                                      zoom=0.8,
+                                      front=[-0.4999, -0.1659, -0.8499],
+                                      lookat=[2.1813, 2.0619, 2.0999],
+                                      up=[0.1204, -0.9852, 0.1215])
+    ```
+  
+    **segment_plane** 
+  
+    arguments:
+  
+    - distance_threshold
+  
+      the max distance a point can have to an estimated plane to be considered an inlier
+  
+    - ransac_n
+  
+      define the num of points that are randomly sampled to estimate a plane
+  
+    - num_iterations
+  
+      how often a random plane is sampled and verified
+  
+    return a,b,c,d
+  
+     ax+by+cz+d=0
+  
+    
+  
   - Hidden point removal
-
+  
+    可以隐藏那些看不到的点云
     
+    ```python
+    print("Convert mesh to a point cloud and estimate dimensions")
+    pcd = o3dtut.get_armadillo_mesh().sample_points_poisson_disk(5000)
+    diameter = np.linalg.norm(
+        np.asarray(pcd.get_max_bound()) - np.asarray(pcd.get_min_bound()))
+    o3d.visualization.draw_geometries([pcd])
+    
+    print("Define parameters used for hidden_point_removal")
+    camera = [0, 0, diameter]
+    radius = diameter * 100
+    
+    print("Get all points that are visible from given view point")
+    _, pt_map = pcd.hidden_point_removal(camera, radius)
+    
+    print("Visualize result")
+    pcd = pcd.select_by_index(pt_map)
+    o3d.visualization.draw_geometries([pcd])
+    ```
+
+
+
+- Mesh
+
+  Open3d has data structure for 3d triangle meshs called **TriangleMesh**
+
+  - Read
 
 
 
