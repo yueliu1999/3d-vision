@@ -376,7 +376,30 @@
 
   Open3d has data structure for 3d triangle meshs called **TriangleMesh**
 
-  - Read
+  - Read from a ply file
+  
+    print its vertices and triangles
+  
+    ```python
+    print("Testing mesh in Open3D...")
+    mesh = o3dtut.get_knot_mesh()
+    print(mesh)
+    print('Vertices:')
+    print(np.asarray(mesh.vertices))
+    print('Triangles:')
+    print(np.asarray(mesh.triangles))
+    ```
+  
+    TriangleMesh是三角网格
+  
+    有以下属性
+  
+    - vertices：顶点
+    - triangles：三角形
+  
+    
+  
+  - 
 
 
 
@@ -388,11 +411,49 @@
 
 
 
+- Working with numpy
 
+  Open3d中所有的数据都和Numpy兼容
 
+  生成一些numpy的数据
 
+  ```python
+  x = np.linspace(-3, 3, 401)
+  mesh_x, mesh_y = np.meshgrid(x, x)
+  z = np.sinc((np.power(mesh_x, 2) + np.power(mesh_y, 2)))
+  z_norm = (z - z.min()) / (z.max() - z.min())
+  xyz = np.zeros((np.size(mesh_x), 3))
+  xyz[:, 0] = np.reshape(mesh_x, -1)
+  xyz[:, 1] = np.reshape(mesh_y, -1)
+  xyz[:, 2] = np.reshape(z_norm, -1)
+  print('xyz')
+  print(xyz)
+  ```
 
+  - from numpy to open3d.PointCloud
 
+    ```python
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(xyz)
+    
+    ```
+
+    **open3d.PointCloud.colors**和**open3d.PointCloud.normals**都可以被赋值
+
+  - from open3d.PointCloud to Numpy
+
+    ```python
+    # Load saved point cloud and visualize it
+    pcd_load = o3d.io.read_point_cloud("../../test_data/sync.ply")
+    
+    # Convert Open3D.o3d.geometry.PointCloud to numpy array
+    xyz_load = np.asarray(pcd_load.points)
+    print('xyz_load')
+    print(xyz_load)
+    o3d.visualization.draw_geometries([pcd_load])
+    ```
+
+    
 
 ### Processing
 
