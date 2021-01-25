@@ -399,9 +399,65 @@
   
     
   
-  - 
-
-
+  - Visualize a 3D mesh
+  
+    ```python
+    print("Try to render a mesh with normals (exist: " +
+          str(mesh.has_vertex_normals()) + ") and colors (exist: " +
+          str(mesh.has_vertex_colors()) + ")")
+    o3d.visualization.draw_geometries([mesh])
+    print("A mesh with no normals and no colors does not look good.")
+    ```
+  
+    这个时候顶点没有法向normal和面face
+    
+    
+    
+  - Surface normal estimate
+  
+    ```python
+    print("Computing normal and rendering it.")
+    mesh.compute_vertex_normals()
+    print(np.asarray(mesh.triangle_normals))
+    o3d.visualization.draw_geometries([mesh])
+    ```
+  
+    用compute_vertex_normals来计算法向
+  
+    
+  
+  - Crop mesh
+  
+    切掉一半的mesh，可以使用numpy来解决
+  
+    ```python
+    print("We make a partial mesh of only the first half triangles.")
+    mesh1 = copy.deepcopy(mesh)
+    mesh1.triangles = o3d.utility.Vector3iVector(
+        np.asarray(mesh1.triangles)[:len(mesh1.triangles) // 2, :])
+    mesh1.triangle_normals = o3d.utility.Vector3dVector(
+        np.asarray(mesh1.triangle_normals)[:len(mesh1.triangle_normals) // 2, :])
+    print(mesh1.triangles)
+    o3d.visualization.draw_geometries([mesh1])
+    ```
+  
+    
+  
+  - Paint mesh
+  
+    可以用paint_uniform_color来显示出颜色
+  
+    ```python
+    print("Painting the mesh")
+    mesh1.paint_uniform_color([1, 0.706, 0])
+    o3d.visualization.draw_geometries([mesh1])
+    ```
+  
+    
+  
+  - Mesh properties
+  
+    
 
 
 

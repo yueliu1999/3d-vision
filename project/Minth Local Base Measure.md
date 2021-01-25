@@ -4,6 +4,10 @@
 
 参考OpenMVG pipeline
 
+- [x] 加入激光网格点约束
+- [x] G1G2加权
+- [x] X4X5加权
+
 
 
 ## 小基准测量
@@ -118,7 +122,14 @@
 
 #### 三角化
 
-利用优化后的外参，重新三角化全部点
+利用优化后的外参，重新三角化全部点，包括
+
+1. 孔心点
+2. 网格点
+
+
+
+三角化的过程：
 
 - 2个views的三角化
 
@@ -139,9 +150,144 @@
 
 
 
+#### BA：优化3d点
+
+进行BA优化
+
+target:
+
+- reprojection error
+  $$
+  [x,y,1] = K[R|t][X,Y,Z,1]
+  \\
+   reprojection\ \ error = sqrt((x-x')^2+(y-y')^2)
+  \\
+  x' \ \  and \  \ y' \ \  is \  \ the \  \ point \ \ detected
+  $$
+
+parameters:
+
+- X
+- Y
+- Z
 
 
 
+#### 平面拟合
+
+对于重建的网格点，需要对之进行平面拟合，需要拟合的平面包括
+
+- PM01
+- PM02
+- PM03
+- PM04
+- PM05
+- PM06
+- PM28
+- PM29
+- PM30
+- PM31
+- PM32
+- PM33
+- PM37-A-FR
+- PM37-A-RR
+- PM37-B-FR
+- PM37-B-RR
+- PM37-C-FR
+- PM37-C-RR
+- PM37-D-FR
+- PM37-D-RR
+- PM37-E-FR
+- PM37-E-RR
+- AA-FR
+- AA-RR
+
+
+
+平面拟合流程
+
+1. RANSAC(Random sample consensus)
+
+   从所有点中随机选取3个点进行平面方程的计算，计算其他各个点到该平面的距离，如果距离小于一定阈值，则inliers+1，多做几组，从中选出inliers数量最大的那组inliers
+
+2. 最小二乘
+
+   用选出的inliers进行最小二乘拟合平面
+
+
+
+
+
+#### 建立小基准
+
+利用以上拟合的平面以及G1G2进行小基准坐标系的建立
+
+
+
+#### 测量
+
+将圆孔孔心重建的坐标转换到小基准坐标系下进行计算
+
+- 位置度
+
+  计算公式：
+  $$
+  \left\{
+  \begin{align}
+  
+  position = 2*sqrt((x_m-x_N)^2+(y_m-y_N)^2) \quad if\quad norm = [0,0,1]
+  \\
+  position = 2*sqrt((y_m-y_N)^2+(z_m-z_N)^2) \quad if\quad norm = [0,1,0]
+  \end{align}
+  \right.
+  $$
+
+- 平面度
+  $$
+  flatness = 正差+负差
+  $$
+  
+
+- 面轮廓度
+  $$
+  
+  profile = abs(distance_{measure}-distance_{norminal})
+  $$
+
+
+
+#### 对标三坐标测量值
+
+1. 三坐标测量值提取
+
+   - excel->json
+   - txt->json
+
+   将测点号的position，x，y，z，flatness，profile作为value，将测点号作为key
+
+2. 三坐标重复性分析
+
+   多组三坐标测量值进行分析，计算两次的三坐标的差值，得到以下分析结果
+
+   - count
+   - mean
+   - std
+   - min
+   - <25%
+   - <50%
+   - <75%
+   - max
+   - hist plot
+
+3. 对标
+
+   计算三坐标测量值和我们的测量值的差值
+
+   统计
+
+   - <0.2百分比
+   - <0.3百分比
+   - <0.4百分比
 
 
 
