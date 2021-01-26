@@ -52,9 +52,9 @@
      y' = y+(p_1(r^2+2y^2)+2p_2x)
      $$
      
-   
+
   
-   
+
 2. 利用Halcon/Linemod进行模板匹配或深度学习，找到圆孔的中心点：
 
    1. ROI：获取到每个ROI（手工标注的ROI）
@@ -402,6 +402,12 @@
   Pipeline如上，输入为多个移动工件的2d匹配点，将两个工件的所有点加入到BA中进行标定优化
 
   将顶到头的工件称为初始工件，其他工件的重建点相对于初始工件的重建点有一个RT，将该RT加入到BA中进行优化
+  
+  
+  
+- [ ] 孔心点的uncentainty
+
+  在孔心的2d点上加入2d高斯随机数
 
 
 
@@ -440,7 +446,7 @@
         
         $$
         I(x,y) = \frac{I(x,y)-I_{min}}{I_{max}-I_{min}}(MAX-MIN)+MIN
-       $$
+      $$
         
 
         [灰度拉伸](https://blog.csdn.net/saltriver/article/details/79677199)
