@@ -377,9 +377,9 @@
   Open3d has data structure for 3d triangle meshs called **TriangleMesh**
 
   - Read from a ply file
-  
+
     print its vertices and triangles
-  
+
     ```python
     print("Testing mesh in Open3D...")
     mesh = o3dtut.get_knot_mesh()
@@ -389,18 +389,18 @@
     print('Triangles:')
     print(np.asarray(mesh.triangles))
     ```
-  
+
     TriangleMesh是三角网格
-  
+
     有以下属性
-  
+
     - vertices：顶点
     - triangles：三角形
-  
+
     
-  
+
   - Visualize a 3D mesh
-  
+
     ```python
     print("Try to render a mesh with normals (exist: " +
           str(mesh.has_vertex_normals()) + ") and colors (exist: " +
@@ -408,28 +408,28 @@
     o3d.visualization.draw_geometries([mesh])
     print("A mesh with no normals and no colors does not look good.")
     ```
-  
+
     这个时候顶点没有法向normal和面face
     
     
     
   - Surface normal estimate
-  
+
     ```python
     print("Computing normal and rendering it.")
     mesh.compute_vertex_normals()
     print(np.asarray(mesh.triangle_normals))
     o3d.visualization.draw_geometries([mesh])
     ```
-  
+
     用compute_vertex_normals来计算法向
-  
+
     
-  
+
   - Crop mesh
-  
+
     切掉一半的mesh，可以使用numpy来解决
-  
+
     ```python
     print("We make a partial mesh of only the first half triangles.")
     mesh1 = copy.deepcopy(mesh)
@@ -440,32 +440,287 @@
     print(mesh1.triangles)
     o3d.visualization.draw_geometries([mesh1])
     ```
-  
+
     
-  
+
   - Paint mesh
-  
+
     可以用paint_uniform_color来显示出颜色
-  
+
     ```python
     print("Painting the mesh")
     mesh1.paint_uniform_color([1, 0.706, 0])
     o3d.visualization.draw_geometries([mesh1])
     ```
-  
+
     
-  
+
   - Mesh properties
-  
+
+    
+    
+  - Mesh filtering
+
+    - Average filter
+    
+      一个顶点是由其相邻点的均值来计算的
+      $$
+      v_i = \frac{v_i+\sum_{n\in N^{v_{n}}}}{|N|+1}
+      $$
+      可以用来降噪
+    
+      **number_of_iterations** in the function **filter_smooth_simple** define the how often the filter is applied to the mesh
+    
+      ```python
+      print('create noisy mesh')
+      mesh_in = o3dtut.get_knot_mesh()
+      vertices = np.asarray(mesh_in.vertices)
+      noise = 5
+      vertices += np.random.uniform(0, noise, size=vertices.shape)
+      mesh_in.vertices = o3d.utility.Vector3dVector(vertices)
+      mesh_in.compute_vertex_normals()
+      o3d.visualization.draw_geometries([mesh_in])
+      
+      print('filter with average with 1 iteration')
+      mesh_out = mesh_in.filter_smooth_simple(number_of_iterations=1)
+      mesh_out.compute_vertex_normals()
+      o3d.visualization.draw_geometries([mesh_out])
+      
+      print('filter with average with 5 iterations')
+      mesh_out = mesh_in.filter_smooth_simple(number_of_iterations=5)
+      mesh_out.compute_vertex_normals()
+      o3d.visualization.draw_geometries([mesh_out])
+      
+      ```
+    
+      
+    
+    - Laplacian
+      $$
+      v_i = v_i \lambda \sum_{n\in N}w_nv_n - v_i
+      \\ 
+      \lambda \ is \ the \ strength \ of \ the \ filter 
+      \\
+      w_n \ is \ normalized \ weights \ that \ relate \ to \ the \ distance \ of \ neighboring \ vertices
+      $$
+      **filter_smooth_laplacian**
+    
+      - **number_of_iterations**
+      - **lambda**
+    
+      ```python
+      print('filter with Laplacian with 10 iterations')
+      mesh_out = mesh_in.filter_smooth_laplacian(number_of_iterations=10)
+      mesh_out.compute_vertex_normals()
+      o3d.visualization.draw_geometries([mesh_out])
+      
+      print('filter with Laplacian with 50 iterations')
+      mesh_out = mesh_in.filter_smooth_laplacian(number_of_iterations=50)
+      mesh_out.compute_vertex_normals()
+      o3d.visualization.draw_geometries([mesh_out])
+      ```
+    
+      
+    
+    - Taubin filter
+    
+      average and laplacian filter is that they lead to a shrinkage of the triangle mesh
+    
+      tabubin filter showed that the application of two laplacian filters with different labmda parameters can prevent the mesh shrinkage.
+    
+      **filter_smooth_taubin**
+    
+      ```python
+      print('filter with Taubin with 10 iterations')
+      mesh_out = mesh_in.filter_smooth_taubin(number_of_iterations=10)
+      mesh_out.compute_vertex_normals()
+      o3d.visualization.draw_geometries([mesh_out])
+      
+      print('filter with Taubin with 100 iterations')
+      mesh_out = mesh_in.filter_smooth_taubin(number_of_iterations=100)
+      mesh_out.compute_vertex_normals()
+      o3d.visualization.draw_geometries([mesh_out])
+      ```
+    
+      
+    
+  - Sampling
+
+    **sample_points_uniformly** that uniformly samples points from the 3D surface based on the triangle area
+
+    **number_of_points** defines how many points are sampled  from the triangle surface
+
+    ```python
+    mesh = o3d.geometry.TriangleMesh.create_sphere()
+    mesh.compute_vertex_normals()
+    o3d.visualization.draw_geometries([mesh])
+    pcd = mesh.sample_points_uniformly(number_of_points=500)
+    o3d.visualization.draw_geometries([pcd])
+    ```
+
     
 
+  - Mesh subdivision
 
+    我们可以将三角网格进行细分化，例如直接找到三角形边的中点
 
+    **subdivide_midpoint**
 
+    ```python
+    mesh = o3d.geometry.TriangleMesh.create_box()
+    mesh.compute_vertex_normals()
+    print(
+        f'The mesh has {len(mesh.vertices)} vertices and {len(mesh.triangles)} triangles'
+    )
+    o3d.visualization.draw_geometries([mesh], zoom=0.8, mesh_show_wireframe=True)
+    mesh = mesh.subdivide_midpoint(number_of_iterations=1)
+    print(
+        f'After subdivision it has {len(mesh.vertices)} vertices and {len(mesh.triangles)} triangles'
+    )
+    o3d.visualization.draw_geometries([mesh], zoom=0.8, mesh_show_wireframe=True)
+    ```
 
+    我们也可以用另外一个subdivision的方法，基于quartic box spline
 
+    ```python
+    mesh = o3d.geometry.TriangleMesh.create_sphere()
+    mesh.compute_vertex_normals()
+    print(
+        f'The mesh has {len(mesh.vertices)} vertices and {len(mesh.triangles)} triangles'
+    )
+    o3d.visualization.draw_geometries([mesh], zoom=0.8, mesh_show_wireframe=True)
+    mesh = mesh.subdivide_loop(number_of_iterations=2)
+    print(
+        f'After subdivision it has {len(mesh.vertices)} vertices and {len(mesh.triangles)} triangles'
+    )
+    o3d.visualization.draw_geometries([mesh], zoom=0.8, mesh_show_wireframe=True)
+    ```
 
+    
 
+  - Mesh simplification
+
+    可以简化三角网格和顶点
+
+    - Vertex clustering
+
+      pool all vertices that fall into a voxel of a given size to a single vertex
+
+      **simplify_vertex_clustering**
+
+      - voxel_size:
+
+        the size of the voxel grid
+
+      - contraction
+
+        how the vertices are pooled
+
+        **o3d.geometry.SimplificationContraction.Average**
+
+      ```python
+      mesh_in = o3dtut.get_bunny_mesh()
+      print(
+          f'Input mesh has {len(mesh_in.vertices)} vertices and {len(mesh_in.triangles)} triangles'
+      )
+      o3d.visualization.draw_geometries([mesh_in])
+      
+      voxel_size = max(mesh_in.get_max_bound() - mesh_in.get_min_bound()) / 32
+      print(f'voxel_size = {voxel_size:e}')
+      mesh_smp = mesh_in.simplify_vertex_clustering(
+          voxel_size=voxel_size,
+          contraction=o3d.geometry.SimplificationContraction.Average)
+      print(
+          f'Simplified mesh has {len(mesh_smp.vertices)} vertices and {len(mesh_smp.triangles)} triangles'
+      )
+      o3d.visualization.draw_geometries([mesh_smp])
+      
+      voxel_size = max(mesh_in.get_max_bound() - mesh_in.get_min_bound()) / 16
+      print(f'voxel_size = {voxel_size:e}')
+      mesh_smp = mesh_in.simplify_vertex_clustering(
+          voxel_size=voxel_size,
+          contraction=o3d.geometry.SimplificationContraction.Average)
+      print(
+          f'Simplified mesh has {len(mesh_smp.vertices)} vertices and {len(mesh_smp.triangles)} triangles'
+      )
+      o3d.visualization.draw_geometries([mesh_smp])
+      ```
+
+      
+
+      
+
+    - Mesh decimation
+
+      最小化error quadrics (distances to neighboring planes)
+
+      **target_number_of_triangles** defines the stopping critera of the decimation algorithm
+
+      ```python
+      mesh_smp = mesh_in.simplify_quadric_decimation(target_number_of_triangles=6500)
+      print(
+          f'Simplified mesh has {len(mesh_smp.vertices)} vertices and {len(mesh_smp.triangles)} triangles'
+      )
+      o3d.visualization.draw_geometries([mesh_smp])
+      
+      mesh_smp = mesh_in.simplify_quadric_decimation(target_number_of_triangles=1700)
+      print(
+          f'Simplified mesh has {len(mesh_smp.vertices)} vertices and {len(mesh_smp.triangles)} triangles'
+      )
+      o3d.visualization.draw_geometries([mesh_smp])
+      ```
+
+      
+
+    - Connected components
+
+      可以对不同mesh进行拼接，可以去噪声
+
+      **cluster_connected_triangles**
+
+      - triangle_clusters
+      - cluster_n_triangles
+      - cluster_area
+
+      ```python
+      print("Generate data")
+      mesh = o3dtut.get_bunny_mesh().subdivide_midpoint(number_of_iterations=2)
+      vert = np.asarray(mesh.vertices)
+      min_vert, max_vert = vert.min(axis=0), vert.max(axis=0)
+      for _ in range(30):
+          cube = o3d.geometry.TriangleMesh.create_box()
+          cube.scale(0.005, center=cube.get_center())
+          cube.translate(
+              (
+                  np.random.uniform(min_vert[0], max_vert[0]),
+                  np.random.uniform(min_vert[1], max_vert[1]),
+                  np.random.uniform(min_vert[2], max_vert[2]),
+              ),
+              relative=False,
+          )
+          mesh += cube
+      mesh.compute_vertex_normals()
+      print("Show input mesh")
+      o3d.visualization.draw_geometries([mesh])
+      ```
+
+      ```python
+      print("Cluster connected triangles")
+      with o3d.utility.VerbosityContextManager(
+              o3d.utility.VerbosityLevel.Debug) as cm:
+          triangle_clusters, cluster_n_triangles, cluster_area = (
+              mesh.cluster_connected_triangles())
+      triangle_clusters = np.asarray(triangle_clusters)
+      cluster_n_triangles = np.asarray(cluster_n_triangles)
+      cluster_area = np.asarray(cluster_area)
+      ```
+
+- RGBD images
+
+  RGBImage由两个images组成
+
+  - RGBDImage.depth
+  - RGBDImage.color
 
 - Working with numpy
 
