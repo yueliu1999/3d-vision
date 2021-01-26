@@ -372,6 +372,8 @@
 
 
 
+
+
 - Mesh
 
   Open3d has data structure for 3d triangle meshs called **TriangleMesh**
@@ -715,12 +717,63 @@
       cluster_area = np.asarray(cluster_area)
       ```
 
+
+
+
+
 - RGBD images
 
   RGBImage由两个images组成
 
   - RGBDImage.depth
   - RGBDImage.color
+
+  可以读入深度图和彩色图
+
+  ```python
+  print("Read Redwood dataset")
+  color_raw = o3d.io.read_image("../../test_data/RGBD/color/00000.jpg")
+  depth_raw = o3d.io.read_image("../../test_data/RGBD/depth/00000.png")
+  rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(
+      color_raw, depth_raw)
+  print(rgbd_image)
+  ```
+
+  可以用**create_rgbd_image_from_color_and_depth**函数来合成RGBDImage
+
+  ```python
+  plt.subplot(1, 2, 1)
+  plt.title('Redwood grayscale image')
+  plt.imshow(rgbd_image.color)
+  plt.subplot(1, 2, 2)
+  plt.title('Redwood depth image')
+  plt.imshow(rgbd_image.depth)
+  plt.show()
+  ```
+
+  RGBDImage可以转换为点云，需要给出相机参数
+
+  ```python
+  pcd = o3d.geometry.PointCloud.create_from_rgbd_image(
+      rgbd_image,
+      o3d.camera.PinholeCameraIntrinsic(
+          o3d.camera.PinholeCameraIntrinsicParameters.PrimeSenseDefault))
+  # Flip it, otherwise the pointcloud will be upside down
+  pcd.transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
+  o3d.visualization.draw_geometries([pcd], zoom=0.5)
+  ```
+
+  **create_from_rgbd_image**
+
+  相机参数是**PinholeCameraIntrinsicParameters.PrimeSenseDefault**
+
+  - resolution: 640pixel*480pixel
+
+  - focal length: (fx, fy) = (525.0, 525.0)
+  - optical center: (cx, cy) = (319.5 239.5)
+  - extrinsic parameter: identity matrix
+
+  
 
 - Working with numpy
 
