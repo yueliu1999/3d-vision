@@ -770,8 +770,165 @@
   - resolution: 640pixel*480pixel
 
   - focal length: (fx, fy) = (525.0, 525.0)
+
   - optical center: (cx, cy) = (319.5 239.5)
+
   - extrinsic parameter: identity matrix
+
+    
+
+- KDTree
+
+  **build KDTree from point cloud**
+
+  preprocessing step for the following nearest neighbor queries
+
+  ```python
+  print("Testing kdtree in Open3D...")
+  print("Load a point cloud and paint it gray.")
+  pcd = o3d.io.read_point_cloud("../../test_data/Feature/cloud_bin_0.pcd")
+  pcd.paint_uniform_color([0.5, 0.5, 0.5])
+  pcd_tree = o3d.geometry.KDTreeFlann(pcd)
+  ```
+
+  **Find neighboring points**
+  
+  ```python
+  print("Paint the 1500th point red.")
+  pcd.colors[1500] = [1, 0, 0]
+  ```
+  
+  **Using search_knn_vector_3d**
+  
+  ```python
+  print("Find its 200 nearest neighbors, and paint them blue.")
+  [k, idx, _] = pcd_tree.search_knn_vector_3d(pcd.points[1500], 200)
+  np.asarray(pcd.colors)[idx[1:], :] = [0, 0, 1]
+  ```
+  
+  **Using search_radius_vector_3d**
+  
+  ```python
+  print("Find its neighbors with distance less than 0.2, and paint them green.")
+  [k, idx, _] = pcd_tree.search_radius_vector_3d(pcd.points[1500], 0.2)
+  np.asarray(pcd.colors)[idx[1:], :] = [0, 1, 0]
+  ```
+  
+- File IO
+
+  - Point cloud
+  - Mesh
+  - Image
+
+  
+
+- Point cloud outlier removal
+
+  从扫描设备中获取的点云，会有一些噪声，我们需要将这些噪声去除掉
+
+  - Prepare input data
+
+    降采样使用**voxel_downsample**
+
+    ```python
+    print("Load a ply point cloud, print it, and render it")
+    pcd = o3d.io.read_point_cloud("../../test_data/ICP/cloud_bin_2.pcd")
+    o3d.visualization.draw_geometries([pcd],
+                                      zoom=0.3412,
+                                      front=[0.4257, -0.2125, -0.8795],
+                                      lookat=[2.6172, 2.0475, 1.532],
+                                      up=[-0.0694, -0.9768, 0.2024])
+    
+    print("Downsample the point cloud with a voxel of 0.02")
+    voxel_down_pcd = pcd.voxel_down_sample(voxel_size=0.02)
+    o3d.visualization.draw_geometries([voxel_down_pcd],
+                                      zoom=0.3412,
+                                      front=[0.4257, -0.2125, -0.8795],
+                                      lookat=[2.6172, 2.0475, 1.532],
+                                      up=[-0.0694, -0.9768, 0.2024])
+    ```
+
+    降采样使用**uniform down sample**
+
+    ```python
+    print("Every 5th points are selected")
+    uni_down_pcd = pcd.uniform_down_sample(every_k_points=5)
+    o3d.visualization.draw_geometries([uni_down_pcd],
+                                      zoom=0.3412,
+                                      front=[0.4257, -0.2125, -0.8795],
+                                      lookat=[2.6172, 2.0475, 1.532],
+                                      up=[-0.0694, -0.9768, 0.2024])
+    ```
+
+    
+
+  - Select down sample
+
+    ```python
+    def display_inlier_outlier(cloud, ind):
+        inlier_cloud = cloud.select_by_index(ind)
+        outlier_cloud = cloud.select_by_index(ind, invert=True)
+    
+        print("Showing outliers (red) and inliers (gray): ")
+        outlier_cloud.paint_uniform_color([1, 0, 0])
+        inlier_cloud.paint_uniform_color([0.8, 0.8, 0.8])
+        o3d.visualization.draw_geometries([inlier_cloud, outlier_cloud],
+                                          zoom=0.3412,
+                                          front=[0.4257, -0.2125, -0.8795],
+                                          lookat=[2.6172, 2.0475, 1.532],
+                                          up=[-0.0694, -0.9768, 0.2024])
+    ```
+
+    
+
+  - Statistical outlier removal
+
+    移除那些距离点云平均值邻居很远的点
+
+    有两个参数
+
+    - nb_neighbor
+
+      计算n个邻居的平均距离
+
+    - std_ratio
+
+      标准差的阈值
+
+    ```python
+    print("Statistical oulier removal")
+    cl, ind = voxel_down_pcd.remove_statistical_outlier(nb_neighbors=20,
+                                                        std_ratio=2.0)
+    display_inlier_outlier(voxel_down_pcd, ind)
+    ```
+
+  - Radius outlier removal
+
+    给出一个球，如果临近点很少则认为是outlier
+
+    有两个参数
+
+    - nb_points
+
+      选出最小的数量在球的周围
+
+    - radius
+
+      radius of sphere
+
+    ```python
+    print("Radius oulier removal")
+    cl, ind = voxel_down_pcd.remove_radius_outlier(nb_points=16, radius=0.05)
+    display_inlier_outlier(voxel_down_pcd, ind)
+    ```
+
+
+
+- Voxelization
+
+  - From triangle mesh
+  - From point cloud
+  - 
 
   
 
