@@ -813,7 +813,11 @@
   [k, idx, _] = pcd_tree.search_radius_vector_3d(pcd.points[1500], 0.2)
   np.asarray(pcd.colors)[idx[1:], :] = [0, 1, 0]
   ```
-  
+
+
+
+### Processing
+
 - File IO
 
   - Point cloud
@@ -926,11 +930,301 @@
 
 - Voxelization
 
-  - From triangle mesh
-  - From point cloud
-  - 
+  点云和三角网格是非常灵活但是不规则的几何类型，体素网格是另外一种3d形式
+
+  Open3D有**VoxelGrid**几何类型可以被使用于voxel grid
 
   
+
+  - From triangle mesh
+
+    ```python
+    print('input')
+    mesh = o3dtut.get_bunny_mesh()
+    # fit to unit cube
+    mesh.scale(1 / np.max(mesh.get_max_bound() - mesh.get_min_bound()),
+               center=mesh.get_center())
+    o3d.visualization.draw_geometries([mesh])
+    
+    print('voxelization')
+    voxel_grid = o3d.geometry.VoxelGrid.create_from_triangle_mesh(mesh,
+                                                                  voxel_size=0.05)
+    o3d.visualization.draw_geometries([voxel_grid])
+    ```
+
+  - From point cloud
+
+    ```python
+    print('input')
+    N = 2000
+    pcd = o3dtut.get_armadillo_mesh().sample_points_poisson_disk(N)
+    # fit to unit cube
+    pcd.scale(1 / np.max(pcd.get_max_bound() - pcd.get_min_bound()),
+              center=pcd.get_center())
+    pcd.colors = o3d.utility.Vector3dVector(np.random.uniform(0, 1, size=(N, 3)))
+    o3d.visualization.draw_geometries([pcd])
+    
+    print('voxelization')
+    voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd,
+                                                                voxel_size=0.05)
+    o3d.visualization.draw_geometries([voxel_grid])
+    ```
+
+  - Inclusion test
+
+    ```python
+    queries = np.asarray(pcd.points)
+    output = voxel_grid.check_if_included(o3d.utility.Vector3dVector(queries))
+    print(output[:10])
+    ```
+
+  - Voxel carving
+
+  
+
+- Surface reconstruction
+
+  a dense 3D geometry, i.e., a triangle mesh
+
+  face reconstruction method
+
+  - Alpha shapes
+
+    **create_from_point_cloud_alpha_shape**
+
+    parameter **alpha**
+
+    ```python
+    mesh = o3dtut.get_bunny_mesh()
+    pcd = mesh.sample_points_poisson_disk(750)
+    o3d.visualization.draw_geometries([pcd])
+    alpha = 0.03
+    print(f"alpha={alpha:.3f}")
+    mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(pcd, alpha)
+    mesh.compute_vertex_normals()
+    o3d.visualization.draw_geometries([mesh], mesh_show_back_face=True)
+    ```
+
+    ```python
+    tetra_mesh, pt_map = o3d.geometry.TetraMesh.create_from_point_cloud(pcd)
+    for alpha in np.logspace(np.log10(0.5), np.log10(0.01), num=4):
+        print(f"alpha={alpha:.3f}")
+        mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(
+            pcd, alpha, tetra_mesh, pt_map)
+        mesh.compute_vertex_normals()
+        o3d.visualization.draw_geometries([mesh], mesh_show_back_face=True)
+    ```
+
+    
+
+  - Ball pivoting
+
+    **create_from_point_cloud_ball_pivoting**
+
+    parameter radii
+
+    ```python
+    gt_mesh = o3dtut.get_bunny_mesh()
+    gt_mesh.compute_vertex_normals()
+    pcd = gt_mesh.sample_points_poisson_disk(3000)
+    o3d.visualization.draw_geometries([pcd])
+    ```
+
+    ```python
+    radii = [0.005, 0.01, 0.02, 0.04]
+    rec_mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_ball_pivoting(
+        pcd, o3d.utility.DoubleVector(radii))
+    o3d.visualization.draw_geometries([pcd, rec_mesh])
+    ```
+
+  - Poisson surface reconstruction
+
+    ```python
+    pcd = o3dtut.get_eagle_pcd()
+    print(pcd)
+    o3d.visualization.draw_geometries([pcd],
+                                      zoom=0.664,
+                                      front=[-0.4761, -0.4698, -0.7434],
+                                      lookat=[1.8900, 3.2596, 0.9284],
+                                      up=[0.2304, -0.8825, 0.4101])
+    print('run Poisson surface reconstruction')
+    with o3d.utility.VerbosityContextManager(
+            o3d.utility.VerbosityLevel.Debug) as cm:
+        mesh, densities = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(
+            pcd, depth=9)
+    print(mesh)
+    o3d.visualization.draw_geometries([mesh],
+                                      zoom=0.664,
+                                      front=[-0.4761, -0.4698, -0.7434],
+                                      lookat=[1.8900, 3.2596, 0.9284],
+                                      up=[0.2304, -0.8825, 0.4101])
+    ```
+
+    
+
+  - Normal estimation
+
+    ```python
+    gt_mesh = o3dtut.get_bunny_mesh()
+    pcd = gt_mesh.sample_points_poisson_disk(5000)
+    pcd.normals = o3d.utility.Vector3dVector(np.zeros(
+        (1, 3)))  # invalidate existing normals
+    
+    pcd.estimate_normals()
+    o3d.visualization.draw_geometries([pcd], point_show_normal=True)
+    pcd.orient_normals_consistent_tangent_plane(100)
+    o3d.visualization.draw_geometries([pcd], point_show_normal=True)
+    ```
+
+  
+
+- Transformation
+
+  - translate
+    $$
+    v_t = v+t
+    $$
+
+    ```python
+    mesh = o3d.geometry.TriangleMesh.create_coordinate_frame()
+    mesh_tx = copy.deepcopy(mesh).translate((1.3, 0, 0))
+    mesh_ty = copy.deepcopy(mesh).translate((0, 1.3, 0))
+    print(f'Center of mesh: {mesh.get_center()}')
+    print(f'Center of mesh tx: {mesh_tx.get_center()}')
+    print(f'Center of mesh ty: {mesh_ty.get_center()}')
+    o3d.visualization.draw_geometries([mesh, mesh_tx, mesh_ty])
+    ```
+
+    - get_center
+
+      返回mean of triangle mesh vertices
+
+    - relative
+
+      如果是相对位置，则进行tranlate，如果不是相对，则直接转换到所指定的位置
+
+      
+
+      
+
+  - rotate
+
+    a rotation matrix **R**
+
+    - convert from Euler angles
+
+      **get_rotation_matrix_from_xyz**
+
+    - convert from axis-angle representation
+
+      **get_rotation_matrix_from_axis_angle**
+
+    - convert from quaternions
+
+      **get_rotation_matirx_from_quaternion**
+
+    ```python
+    mesh = o3d.geometry.TriangleMesh.create_coordinate_frame()
+    mesh_r = copy.deepcopy(mesh)
+    R = mesh.get_rotation_matrix_from_xyz((np.pi / 2, 0, np.pi / 4))
+    mesh_r.rotate(R, center=(0, 0, 0))
+    o3d.visualization.draw_geometries([mesh, mesh_r])
+    ```
+
+    
+
+  - scale
+    $$
+    v_s = s  \cdot v
+    $$
+    
+
+    ```python
+    mesh = o3d.geometry.TriangleMesh.create_coordinate_frame()
+    mesh_s = copy.deepcopy(mesh).translate((2, 0, 0))
+    mesh_s.scale(0.5, center=mesh_s.get_center())
+    o3d.visualization.draw_geometries([mesh, mesh_s])
+    ```
+
+    ```python
+    mesh = o3d.geometry.TriangleMesh.create_coordinate_frame()
+    mesh_s = copy.deepcopy(mesh).translate((2, 1, 0))
+    mesh_s.scale(0.5, center=(0, 0, 0))
+    o3d.visualization.draw_geometries([mesh, mesh_s])
+    ```
+
+    
+
+  - transform
+
+    4*4 homogeneous transformation matrix
+
+    ```python
+    mesh = o3d.geometry.TriangleMesh.create_coordinate_frame()
+    T = np.eye(4)
+    T[:3, :3] = mesh.get_rotation_matrix_from_xyz((0, np.pi / 3, np.pi / 2))
+    T[0, 3] = 1
+    T[1, 3] = 1.3
+    print(T)
+    mesh_t = copy.deepcopy(mesh).transform(T)
+    o3d.visualization.draw_geometries([mesh, mesh_t])
+    ```
+
+
+
+
+
+- Mesh deformation
+
+  as-rigid-as-possible method by that optimizes the following energy function:
+  $$
+  \sum_i\sum_{j\in N(i)}w_{ij}||(p_i^{'}-p_j^{'})-R_i(p_i-p_j)||^2
+  $$
+
+  ```python
+  mesh = o3dtut.get_armadillo_mesh()
+  
+  vertices = np.asarray(mesh.vertices)
+  static_ids = [idx for idx in np.where(vertices[:, 1] < -30)[0]]
+  static_pos = []
+  for id in static_ids:
+      static_pos.append(vertices[id])
+  handle_ids = [2490]
+  handle_pos = [vertices[2490] + np.array((-40, -40, -40))]
+  constraint_ids = o3d.utility.IntVector(static_ids + handle_ids)
+  constraint_pos = o3d.utility.Vector3dVector(static_pos + handle_pos)
+  
+  with o3d.utility.VerbosityContextManager(
+          o3d.utility.VerbosityLevel.Debug) as cm:
+      mesh_prime = mesh.deform_as_rigid_as_possible(constraint_ids,
+                                                    constraint_pos,
+                                                    max_iter=50)
+  ```
+
+
+
+- Intrinsic shape signature(ISS)
+
+  ```python
+  # Compute ISS Keypoints on Armadillo
+  mesh = o3dtut.get_armadillo_mesh()
+  pcd = o3d.geometry.PointCloud()
+  pcd.points = mesh.vertices
+  
+  tic = time.time()
+  keypoints = o3d.geometry.keypoint.compute_iss_keypoints(pcd)
+  toc = 1000 * (time.time() - tic)
+  print("ISS Computation took {:.0f} [ms]".format(toc))
+  
+  mesh.compute_vertex_normals()
+  mesh.paint_uniform_color([0.5, 0.5, 0.5])
+  keypoints.paint_uniform_color([1.0, 0.75, 0.0])
+  o3d.visualization.draw_geometries([keypoints, mesh], front=[0, 0, -1.0])
+  ```
+
+
+
+### Interface
 
 - Working with numpy
 
@@ -976,9 +1270,7 @@
 
     
 
-### Processing
-
-### Interface
+### 
 
 
 
