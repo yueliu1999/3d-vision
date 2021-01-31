@@ -149,8 +149,8 @@ implemented for the PointToPlane ICP
   E(T) = \sum_{(p,q)\in K}((p-Tq)\cdot n_{p})^2
   \\ 
   n_p \ the \ normal \ of \ point \ p \ and \ K \ is \ the \ correspondence \ set
-  \\ 
-  $$
+  \\ 
+$$
   重新写该残差
   $$
   E(T) = \sum_{(p,q) \in K}((p-Tq) \cdot n_p)^2 = \sum_{i=1}^N(r_i(T))^2
@@ -159,7 +159,7 @@ implemented for the PointToPlane ICP
   $$
   E(T) = \sum_{i=1}^Nw_i(r_i(T))^2
   $$
-
+  
 - Outlier Rejection with Robust Kernels
 
   主要的思想是降低残差大的权重，因为有可能他们是outliers
@@ -226,6 +226,21 @@ implemented for the PointToPlane ICP
 
 
 ### Colored point cloud registration
+
+ICP variant that use
+
+- gemetry
+- color
+
+算法会更加鲁棒和准确，速度也是可以接受的
+
+- Helper visualization function
+- Input
+- Point-to-plane ICP
+- Colored point cloud registration
+- 
+
+
 
 
 
