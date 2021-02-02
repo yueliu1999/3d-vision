@@ -373,8 +373,12 @@ both **ICP registration** and **Colored point cloud registration** are known as 
 - Input
 - RANSAC
 - Local refinement
-- Fast global registration
-- 
+
+
+
+### Fast global registration
+
+
 
 ### Multiway registraion
 
