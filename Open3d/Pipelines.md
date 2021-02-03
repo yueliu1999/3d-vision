@@ -1,4 +1,4 @@
-## Pipelines
+Pipelines
 
 ### ICP registration
 
@@ -151,7 +151,7 @@ implemented for the PointToPlane ICP
   n_p \ the \ normal \ of \ point \ p \ and \ K \ is \ the \ correspondence \ set
   \\ 
 $$
-  重新写该残差
+重新写该残差
 $$
   E(T) = \sum_{(p,q) \in K}((p-Tq) \cdot n_p)^2 = \sum_{i=1}^N(r_i(T))^2
 $$
@@ -173,8 +173,7 @@ $$
   (J^TWJ)^{-1}J^TW_{\vec{r}}
   \\
   W \in R^{N \times N}
-  $$
-
+$$
   ```python
   def apply_noise(pcd, mu, sigma):
       noisy_pcd = copy.deepcopy(pcd)
@@ -285,19 +284,20 @@ ICP variant that use
   **registration_colored_icp**
 
   it runs ICP iterations with a joint optimization objective:
-  $$
+$$
   E(T) = (1-\delta)E_C(T)+\delta E_G(T)
   \\
   E(C) \ is \ the \ photometric \ term
   \\ 
-  E(G) \ is \ the \ geometric \ term
-  $$
+  E(G) \ is \ the \ geometric \ term
+
+$$
   the geometric term $E_G$ is the same as the point-to-plane ICP objective:
-  $$
+$$
   E_G(T) = \sum_{(p,q) \in K}((p-Tq) \cdot n_p)^2
-  $$
-   the color term $E_C$ measures the difference between the color of point q and the color of its projection on the tangent plane of p
-  $$
+$$
+the color term $E_C$ measures the difference between the color of point q and the color of its projection on the tangent plane of p
+$$
   E_C(T) = \sum_{(p,q) \in k}(C_p(f(Tq))-C(q))^2
   $$
 
@@ -369,14 +369,181 @@ both **ICP registration** and **Colored point cloud registration** are known as 
 经常作为local registration的初始值
 
 - Visualization
+
+  ```python
+  def draw_registration_result(source, target, transformation):
+      source_temp = copy.deepcopy(source)
+      target_temp = copy.deepcopy(target)
+      source_temp.paint_uniform_color([1, 0.706, 0])
+      target_temp.paint_uniform_color([0, 0.651, 0.929])
+      source_temp.transform(transformation)
+      o3d.visualization.draw_geometries([source_temp, target_temp],
+                                        zoom=0.4559,
+                                        front=[0.6452, -0.3036, -0.7011],
+                                        lookat=[1.9892, 2.0208, 1.8945],
+                                        up=[-0.2779, -0.9482, 0.1556])
+  ```
+
 - Extract geometric feature
+
+  - downsample 
+  - estimate normals
+  - compute a FPFH feature
+
+  ```python
+  def preprocess_point_cloud(pcd, voxel_size):
+      print(":: Downsample with a voxel size %.3f." % voxel_size)
+      pcd_down = pcd.voxel_down_sample(voxel_size)
+  
+      radius_normal = voxel_size * 2
+      print(":: Estimate normal with search radius %.3f." % radius_normal)
+      pcd_down.estimate_normals(
+          o3d.geometry.KDTreeSearchParamHybrid(radius=radius_normal, max_nn=30))
+  
+      radius_feature = voxel_size * 5
+      print(":: Compute FPFH feature with search radius %.3f." % radius_feature)
+      pcd_fpfh = o3d.pipelines.registration.compute_fpfh_feature(
+          pcd_down,
+          o3d.geometry.KDTreeSearchParamHybrid(radius=radius_feature, max_nn=100))
+      return pcd_down, pcd_fpfh
+  ```
+
 - Input
+
+  misaligned with identification matrix
+
+  ```python
+  def prepare_dataset(voxel_size):
+      print(":: Load two point clouds and disturb initial pose.")
+      source = o3d.io.read_point_cloud("../../test_data/ICP/cloud_bin_0.pcd")
+      target = o3d.io.read_point_cloud("../../test_data/ICP/cloud_bin_1.pcd")
+      trans_init = np.asarray([[0.0, 0.0, 1.0, 0.0], [1.0, 0.0, 0.0, 0.0],
+                               [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]])
+      source.transform(trans_init)
+      draw_registration_result(source, target, np.identity(4))
+  
+      source_down, source_fpfh = preprocess_point_cloud(source, voxel_size)
+      target_down, target_fpfh = preprocess_point_cloud(target, voxel_size)
+      return source, target, source_down, target_down, source_fpfh, target_fpfh
+  ```
+
 - RANSAC
+
+  **ransac_n** random points are picked from the source point cloud
+
+  pruning algorithm，剪枝:
+
+  - **CorrespondenceCheckerBasedOnDistance**
+
+    检查点是否离得太近了
+
+  - **CorrespondenceCheckerBasedOnEdgeLength**
+
+  - **CorrespondenceCheckerBasedOnNormal**
+
+    计算法向的弧度
+
+  核心函数：
+
+  **registration_ransac_based_on_feature_matching**
+
+  参数：
+
+  **RANSACConvergenceCriteria**
+
+  ```python
+  def execute_global_registration(source_down, target_down, source_fpfh,
+                                  target_fpfh, voxel_size):
+      distance_threshold = voxel_size * 1.5
+      print(":: RANSAC registration on downsampled point clouds.")
+      print("   Since the downsampling voxel size is %.3f," % voxel_size)
+      print("   we use a liberal distance threshold %.3f." % distance_threshold)
+      result = o3d.pipelines.registration.registration_ransac_based_on_feature_matching(
+          source_down, target_down, source_fpfh, target_fpfh, True,
+          distance_threshold,
+          o3d.pipelines.registration.TransformationEstimationPointToPoint(False),
+          3, [
+              o3d.pipelines.registration.CorrespondenceCheckerBasedOnEdgeLength(
+                  0.9),
+              o3d.pipelines.registration.CorrespondenceCheckerBasedOnDistance(
+                  distance_threshold)
+          ], o3d.pipelines.registration.RANSACConvergenceCriteria(100000, 0.999))
+      return result
+  ```
+
+  ```python
+  result_ransac = execute_global_registration(source_down, target_down,
+                                              source_fpfh, target_fpfh,
+                                              voxel_size)
+  print(result_ransac)
+  draw_registration_result(source_down, target_down, result_ransac.transformation)
+  ```
+
 - Local refinement
+
+  全局的registration只能是在严重的降采样下进行，而且结果也不是很好，所以需要用local registration进行refine
+
+  包括
+
+  - point-to-point
+  - point-to-plane
+
+  
 
 
 
 ### Fast global registration
+
+RANSAC会花费太多的时间
+
+Q.-Y. Zhou, J. Park, and V. Koltun, Fast Global Registration, ECCV, 2016.
+
+- Input
+
+  ```python
+  voxel_size = 0.05  # means 5cm for the dataset
+  source, target, source_down, target_down, source_fpfh, target_fpfh = \
+          prepare_dataset(voxel_size)
+  ```
+
+- Baseline
+
+  ```python
+  start = time.time()
+  result_ransac = execute_global_registration(source_down, target_down,
+                                              source_fpfh, target_fpfh,
+                                              voxel_size)
+  print("Global registration took %.3f sec.\n" % (time.time() - start))
+  print(result_ransac)
+  draw_registration_result(source_down, target_down, result_ransac.transformation)
+  ```
+
+- Fast global registration
+
+  ```python
+  def execute_fast_global_registration(source_down, target_down, source_fpfh,
+                                       target_fpfh, voxel_size):
+      distance_threshold = voxel_size * 0.5
+      print(":: Apply fast global registration with distance threshold %.3f" \
+              % distance_threshold)
+      result = o3d.pipelines.registration.registration_fast_based_on_feature_matching(
+          source_down, target_down, source_fpfh, target_fpfh,
+          o3d.pipelines.registration.FastGlobalRegistrationOption(
+              maximum_correspondence_distance=distance_threshold))
+      return result
+  ```
+
+  ```python
+  start = time.time()
+  result_fast = execute_fast_global_registration(source_down, target_down,
+                                                 source_fpfh, target_fpfh,
+                                                 voxel_size)
+  print("Fast global registration took %.3f sec.\n" % (time.time() - start))
+  print(result_fast)
+  draw_registration_result(source_down, target_down, result_fast.transformation)
+  ```
+
+  
 
 
 
