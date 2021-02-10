@@ -711,7 +711,106 @@ Q.-Y. Zhou, J. Park, and V. Koltun, Fast Global Registration, ECCV, 2016.
 
 ### RGBD integration
 
+- Read trajectory from .log file
 
+  RGBD数据生成网络，TSDF算法
+
+  使用了**read_trajectory**从.log文件种读取相机的轨迹，一个.log文件的实例如下
+
+  ```
+  # examples/TestData/RGBD/odometry.log
+  0   0   1
+  1   0   0   2
+  0   1   0   2
+  0   0   1 -0.3
+  0   0   0   1
+  1   1   2
+  0.999988  3.08668e-005  0.0049181  1.99962
+  -8.84184e-005  0.999932  0.0117022  1.97704
+  -0.0049174  -0.0117024  0.999919  -0.300486
+  0  0  0  1
+  ```
+
+  
+
+  读入相机的姿态
+
+  ```python
+  class CameraPose:
+  
+      def __init__(self, meta, mat):
+          self.metadata = meta
+          self.pose = mat
+  
+      def __str__(self):
+          return 'Metadata : ' + ' '.join(map(str, self.metadata)) + '\n' + \
+              "Pose : " + "\n" + np.array_str(self.pose)
+  
+  
+  def read_trajectory(filename):
+      traj = []
+      with open(filename, 'r') as f:
+          metastr = f.readline()
+          while metastr:
+              metadata = list(map(int, metastr.split()))
+              mat = np.zeros(shape=(4, 4))
+              for i in range(4):
+                  matstr = f.readline()
+                  mat[i, :] = np.fromstring(matstr, dtype=float, sep=' \t')
+              traj.append(CameraPose(metadata, mat))
+              metastr = f.readline()
+      return traj
+  ```
+
+- TSDF volume integration
+
+  - UniformTSDFVolume
+
+  - ScalableTSDFVolume，使用了层次结构，支持更大的场景，具有许多参数
+
+    - voxel_length = 4.0/512.0，means a single voxel size for TSDF volume is $\frac{4.0m}{512.0} = 7.8125mm$, 这个值越小，TSDF volume的分辨率越高，但是合成的结果会受到深度噪声的影响
+
+    - sdf_trunc = 0.04
+
+       the truncation value for the signed distance function (SDF)
+
+    - color_type = TSDFVolumeColorType.RGB8
+
+  ```python
+  volume = o3d.pipelines.integration.ScalableTSDFVolume(
+      voxel_length=4.0 / 512.0,
+      sdf_trunc=0.04,
+      color_type=o3d.pipelines.integration.TSDFVolumeColorType.RGB8)
+  
+  for i in range(len(camera_poses)):
+      print("Integrate {:d}-th image into the volume.".format(i))
+      color = o3d.io.read_image("../../test_data/RGBD/color/{:05d}.jpg".format(i))
+      depth = o3d.io.read_image("../../test_data/RGBD/depth/{:05d}.png".format(i))
+      rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(
+          color, depth, depth_trunc=4.0, convert_rgb_to_intensity=False)
+      volume.integrate(
+          rgbd,
+          o3d.camera.PinholeCameraIntrinsic(
+              o3d.camera.PinholeCameraIntrinsicParameters.PrimeSenseDefault),
+          np.linalg.inv(camera_poses[i].pose))
+  ```
+
+- Extract a mesh
+
+  使用了marching cubes algorithm
+
+  ```python
+  print("Extract a triangle mesh from the volume and visualize it.")
+  mesh = volume.extract_triangle_mesh()
+  mesh.compute_vertex_normals()
+  o3d.visualization.draw_geometries([mesh],
+                                    front=[0.5297, -0.1873, -0.8272],
+                                    lookat=[2.0712, 2.0312, 1.7251],
+                                    up=[-0.0558, -0.9809, 0.1864],
+                                    zoom=0.47)
+  ```
+
+  
 
 ### RGBD Odometry
 
