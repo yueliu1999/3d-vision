@@ -814,7 +814,10 @@ Q.-Y. Zhou, J. Park, and V. Koltun, Fast Global Registration, ECCV, 2016.
 
 ### RGBD Odometry
 
-
+- Read camera intrinsic
+- Read RGBD image
+- Compute odemetry from two RGBD image pairs
+- Visualize RGBD image pairs
 
 ### Color Map Optimization
 
