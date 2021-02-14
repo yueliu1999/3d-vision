@@ -814,16 +814,150 @@ Q.-Y. Zhou, J. Park, and V. Koltun, Fast Global Registration, ECCV, 2016.
 
 ### RGBD Odometry
 
+[The word *odometry* is composed from the Greek words *odos* (meaning "route") and *metron* (meaning "measure").](https://en.wikipedia.org/wiki/Odometry)
+
+RGBD视觉里程计
+
+找到一个相机的movement，通过两个连续的RGBD image pairs
+
+输出一个刚性变换
+
+
+
 - Read camera intrinsic
+
+  首先从json文件中读入相机内参矩阵
+
+  ```python
+  pinhole_camera_intrinsic = o3d.io.read_pinhole_camera_intrinsic(
+      "../../test_data/camera_primesense.json")
+  print(pinhole_camera_intrinsic.intrinsic_matrix)
+  ```
+
 - Read RGBD image
-- Compute odemetry from two RGBD image pairs
+
+  read the two pairs of RGBD images in the Redwood format
+
+  ```python
+  source_color = o3d.io.read_image("../../test_data/RGBD/color/00000.jpg")
+  source_depth = o3d.io.read_image("../../test_data/RGBD/depth/00000.png")
+  target_color = o3d.io.read_image("../../test_data/RGBD/color/00001.jpg")
+  target_depth = o3d.io.read_image("../../test_data/RGBD/depth/00001.png")
+  source_rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(
+      source_color, source_depth)
+  target_rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(
+      target_color, target_depth)
+  target_pcd = o3d.geometry.PointCloud.create_from_rgbd_image(
+      target_rgbd_image, pinhole_camera_intrinsic)
+  ```
+
+- Compute odometry from two RGBD image pairs
+
+  从两张RGBD图像对中计算出距离，测距法，odemetry
+
+  
+
+  ```python
+  option = o3d.pipelines.odometry.OdometryOption()
+  odo_init = np.identity(4)
+  print(option)
+  
+  [success_color_term, trans_color_term,
+   info] = o3d.pipelines.odometry.compute_rgbd_odometry(
+       source_rgbd_image, target_rgbd_image, pinhole_camera_intrinsic, odo_init,
+       o3d.pipelines.odometry.RGBDOdometryJacobianFromColorTerm(), option)
+  [success_hybrid_term, trans_hybrid_term,
+   info] = o3d.pipelines.odometry.compute_rgbd_odometry(
+       source_rgbd_image, target_rgbd_image, pinhole_camera_intrinsic, odo_init,
+       o3d.pipelines.odometry.RGBDOdometryJacobianFromHybridTerm(), option)
+  ```
+
+  调用了两个不同的RGBD odometry方法
+
+  - 第一个是最小化photo consistency of aligned images
+  - 第二个
+    - 最小化photo consistency of aligned images
+    - 加入了geometry 约束
+
+  **OdometryOption()**的参数
+
+  - **minimum_correspondence_ratio**
+
+    
+
+  - **max_depth_diff**
+
+    
+
+  - **min_depth** and **max_depth**
+
+    
+
 - Visualize RGBD image pairs
+
+  ```python
+  if success_color_term:
+      print("Using RGB-D Odometry")
+      print(trans_color_term)
+      source_pcd_color_term = o3d.geometry.PointCloud.create_from_rgbd_image(
+          source_rgbd_image, pinhole_camera_intrinsic)
+      source_pcd_color_term.transform(trans_color_term)
+      o3d.visualization.draw_geometries([target_pcd, source_pcd_color_term],
+                                        zoom=0.48,
+                                        front=[0.0999, -0.1787, -0.9788],
+                                        lookat=[0.0345, -0.0937, 1.8033],
+                                        up=[-0.0067, -0.9838, 0.1790])
+  if success_hybrid_term:
+      print("Using Hybrid RGB-D Odometry")
+      print(trans_hybrid_term)
+      source_pcd_hybrid_term = o3d.geometry.PointCloud.create_from_rgbd_image(
+          source_rgbd_image, pinhole_camera_intrinsic)
+      source_pcd_hybrid_term.transform(trans_hybrid_term)
+      o3d.visualization.draw_geometries([target_pcd, source_pcd_hybrid_term],
+                                        zoom=0.48,
+                                        front=[0.0999, -0.1787, -0.9788],
+                                        lookat=[0.0345, -0.0937, 1.8033],
+                                        up=[-0.0067, -0.9838, 0.1790])
+  ```
+
+
 
 ### Color Map Optimization
 
+Consider color mapping the geometry reconstructed from depth cameras. As color and depth frames are not perfectly aligned, the texture mapping using color images is subject to result in blurred color map.
 
+- Input
 
+  读入彩色图片和深度图来合成RGBD_image
 
+  ```
+  def sorted_alphanum(file_list_ordered):
+      convert = lambda text: int(text) if text.isdigit() else text
+      alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
+      return sorted(file_list_ordered, key=alphanum_key)
+  
+  
+  def get_file_list(path, extension=None):
+      if extension is None:
+          file_list = [
+              path + f for f in os.listdir(path) if os.path.isfile(join(path, f))
+          ]
+      else:
+          file_list = [
+              path + f
+              for f in os.listdir(path)
+              if os.path.isfile(os.path.join(path, f)) and
+              os.path.splitext(f)[1] == extension
+          ]
+      file_list = sorted_alphanum(file_list)
+      return file_list
+  ```
+
+  
+
+- Rigid Optimization
+
+- Non-rigid Optimization
 
 
 
