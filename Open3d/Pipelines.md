@@ -1,4 +1,4 @@
-Pipelines
+## Pipelines
 
 ### ICP registration
 
@@ -930,7 +930,7 @@ Consider color mapping the geometry reconstructed from depth cameras. As color a
 
   读入彩色图片和深度图来合成RGBD_image
 
-  ```
+  ```python
   def sorted_alphanum(file_list_ordered):
       convert = lambda text: int(text) if text.isdigit() else text
       alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
@@ -953,17 +953,51 @@ Consider color mapping the geometry reconstructed from depth cameras. As color a
       return file_list
   ```
 
-  
+  读入相机轨迹和mesh
+
+  ```python
+  camera = o3d.io.read_pinhole_camera_trajectory(
+      os.path.join(path, "scene/key.log"))
+  mesh = o3d.io.read_triangle_mesh(os.path.join(path, "scene", "integrated.ply"))
+  ```
+
+  显示出颜色对齐的不是很好
+
+  ```python
+  o3d.visualization.draw_geometries([mesh],
+                                    zoom=0.5399,
+                                    front=[0.0665, -0.1107, -0.9916],
+                                    lookat=[0.7353, 0.6537, 1.0521],
+                                    up=[0.0136, -0.9936, 0.1118])
+  ```
 
 - Rigid Optimization
 
+  优化相机参数，来获取一个更好的颜色映射
+
+  ```python
+  # Optimize texture and save the mesh as texture_mapped.ply
+  # This is implementation of following paper
+  # Q.-Y. Zhou and V. Koltun,
+  # Color Map Optimization for 3D Reconstruction with Consumer Depth Cameras,
+  # SIGGRAPH 2014
+  option.maximum_iteration = 100 if is_ci else 300
+  option.non_rigid_camera_coordinate = False
+  with o3d.utility.VerbosityContextManager(
+          o3d.utility.VerbosityLevel.Debug) as cm:
+      o3d.pipelines.color_map.color_map_optimization(mesh, rgbd_images, camera,
+                                                     option)
+  ```
+
 - Non-rigid Optimization
 
-
-
-
-
-
-
+  ```python
+  option.maximum_iteration = 100 if is_ci else 300
+  option.non_rigid_camera_coordinate = True
+  with o3d.utility.VerbosityContextManager(
+          o3d.utility.VerbosityLevel.Debug) as cm:
+      o3d.pipelines.color_map.color_map_optimization(mesh, rgbd_images, camera,
+                                                     option)
+  ```
 
 
