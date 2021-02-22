@@ -3,6 +3,23 @@
 
 主要包括以下几个模块: 
 
+## 3D Reconstruction
+
+- 3D Reconstruction summry
+
+
+
+## Calibration
+
+- Camera Calibration
+
+
+
+## Camera Lens
+
+- Fisheye camera
+- 希区柯克镜头
+
 
 
 ## Math
@@ -40,13 +57,21 @@
 
 
 
+## Open3d
+
+- Introduction & Get start
+- Geography
+- KinnectFusion
+- Pipeline
+- Visualization
+
+
+
 ## Image Processing
 
 - Filter
-
-
-
-
+- Blue noise sampling
+- Image matching
 
 
 
